@@ -101,9 +101,17 @@ router.post('/', (req: Request<Record<string, unknown>, Record<string, unknown>,
       }
 
       if (req.body.layout) {
-        const filePath: string = path.resolve(req.body.layout).toLowerCase()
-        const isForbiddenFile: boolean = (filePath.includes('ftp') || filePath.includes('ctf.key') || filePath.includes('encryptionkeys'))
-        if (!isForbiddenFile) {
+        const appDir: string = typeof __dirname !== 'undefined' ? path.resolve(__dirname, '..') : path.resolve('.')
+        const viewsDir: string = (typeof req.app?.get === 'function' && req.app.get('views')) ? path.resolve(req.app.get('views')) : path.resolve(appDir, 'views')
+        const layoutPath: string = (typeof req.body.layout === 'string' && !req.body.layout.includes('\0')) ? path.resolve(viewsDir, req.body.layout) : ''
+        const filePath: string = layoutPath.toLowerCase()
+        const rawPath: string = typeof req.body.layout === 'string' ? path.resolve(req.body.layout).toLowerCase() : ''
+        const isForbiddenFile: boolean = (
+          filePath.includes('ftp') || filePath.includes('ctf.key') || filePath.includes('encryptionkeys') ||
+          rawPath.includes('ftp') || rawPath.includes('ctf.key') || rawPath.includes('encryptionkeys')
+        )
+        const isInsideSafeDir: boolean = layoutPath.startsWith(appDir + path.sep)
+        if (!isForbiddenFile && isInsideSafeDir) {
           res.render('dataErasureResult', {
             ...req.body,
             ...themeVars
